@@ -6,11 +6,12 @@ local uptime = os.time()
 return {
 	name = "stats",
 	description = "Show statistics of the bot.",
-	cb = function(msg)
+    options = {},
+	cb = function(ia)
 		local memory = round(process:memoryUsage().heapUsed / 1024 / 1024, 2)
 		local time = discordia.Time.fromSeconds(os.time() - uptime):toString()
 
-		msg:reply({
+		ia:reply({
 			content = ("\
 \27[31m:: Bot Statistics ::\27[0m\
 \
@@ -30,10 +31,6 @@ return {
 				discordia.package.version
 			),
 			code = "ansi",
-			reference = {
-				message = msg,
-				mention = false,
-			},
 		})
 	end,
 }

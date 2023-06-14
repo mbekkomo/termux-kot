@@ -10,10 +10,12 @@ local status = json.decode((assert(fs.readFileSync("status.json"), "cannot find 
 
 ---@type discordia
 local discordia = require("discordia")
-local discordia_ext = require("discordia").extensions
-discordia_ext.string()
+local slash_tools = require("discordia-slash").util.tools()
+local ext = discordia.extensions
+ext.string()
 
-local client = discordia.Client()
+---@diagnostic disable-next-line:undefined-field
+local client = discordia.Client():useApplicationCommands()
 ---@diagnostic disable-next-line:undefined-field -- discordia meta doesn't support 2.11.0
 client:enableIntents(discordia.enums.gatewayIntent.messageContent)
 
@@ -36,51 +38,65 @@ end
 cmds[#cmds + 1] = {
 	name = "help",
 	description = "Show this message about usage of commands.",
-	cb = function(msg, args)
+    options = {
+        slash_tools.boolean("internal", "Display with also internal commands.")
+            :setRequired(false)
+    },
+	cb = function(ia, args)
 		local cmd_helpstr = ""
 
 		for _, v in ipairs(cmds) do
-			if not v.internal or v.internal and (args[1] or ""):find("^[Yy]") then
+			if not v.internal or v.internal and args.internal then
 				cmd_helpstr = cmd_helpstr .. ("%-7s \27[34m.. %s\27[0m\n"):format(v.name, v.description)
 			end
 		end
 
-		msg:reply({
+		ia:reply({
 			content = ("\
 \27[31m:: Commands ::\27[0m\n\
 %s"):format(cmd_helpstr),
-			code = "ansi",
-			reference = {
-				message = msg,
-				mention = false,
-			},
+			code = "ansi"
 		})
 	end,
 }
 
 ---------------------------------------------------------------------------------
 
+---@cast client Client
 ---@diagnostic disable:need-check-nil
+---@diagnostic disable:undefined-field
 client:on("ready", function()
 	client:info("Purr~... Watching messages in the server :3")
 
 	math.randomseed(os.time())
-	client:setActivity(status[math.random(#status)]) ---@diagnostic disable-line:undefined-field
+	client:setActivity(status[math.random(#status)])
 	timer.setInterval(60 * 1000, function()
 		math.randomseed(os.time())
-		coroutine.wrap(client.setActivity)(client, status[math.random(#status)]) ---@diagnostic disable-line:undefined-field
+		coroutine.wrap(client.setActivity)(client, status[math.random(#status)])
 	end)
+
+    for _, cmd_slash in pairs(client:getGlobalApplicationCommands()) do
+        client:deleteGlobalApplicationCommand(cmd_slash)
+    end
+
+    for _, cmd_obj in ipairs(cmds) do
+        local slash_cmd = slash_tools.slashCommand(cmd_obj.name, cmd_obj.description)
+        for _, option in ipairs(cmd_obj.options) do
+            slash_cmd:addOption(option)
+        end
+        client:createGlobalApplicationCommand(slash_cmd)
+    end
 end)
 
-client:once("error", function(errmsg)
-	client:error("Hiss! An error has occured! >:(")
-	client:error(errmsg)
+---@diagnostic disable-next-line:redundant-parameter
+client:on("slashCommand", function(ia, cmd, args)
+    for _, cmd_obj in ipairs(cmds) do
+        if cmd_obj.name == cmd.name then
+            cmd_obj.cb(ia, args, config)
+            client:info("%s used /%s command", ia.user.username, cmd.name)
+        end
+    end
 end)
-
-local prefix = "-"
-local blacklist_chann = {
-	["712954974983684137"] = true,
-}
 
 client:on("messageCreate", function(msg)
 	if msg.author.bot then
@@ -89,13 +105,10 @@ client:on("messageCreate", function(msg)
 
 	local showcase_chann = "712954974983684137"
 
-	if msg.channel.id == showcase_chann and not (msg.content:find("```.+```") or msg.attachment) then
-		for sub_s in msg.content:gmatch("([^ \n]+)") do
-			if lpeg.P({ patt_uri.uri + 1 * lpeg.V(1) }):match(sub_s) then
-				return
-			end
-		end
-
+	if msg.channel.id == showcase_chann and
+        not (msg.content:find("```.+```")
+        or msg.attachment
+        or lpeg.P({ patt_uri.uri + 1 * lpeg.V(1) }):match(msg.content)) then
 		msg:delete()
 		client:info("Catched %s's message!", msg.author.username)
 
@@ -106,19 +119,6 @@ client:on("messageCreate", function(msg)
 		timer.sleep(3000)
 		bot_msg:delete()
 		return
-	end
-
-	if msg.content:sub(1, 1) == prefix then
-		local cmdstr = msg.content:match(prefix .. "(%S+)")
-		local cmdargs = msg.content:split(" ")
-		table.remove(cmdargs, 1)
-		client:info("%s requested -%s", msg.author.username, cmdstr)
-
-		for _, cmd in ipairs(cmds) do
-			if cmd.name == cmdstr and not blacklist_chann[msg.channel.id] then
-				cmd.cb(msg, cmdargs, config)
-			end
-		end
 	end
 end)
 

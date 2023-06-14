@@ -1,4 +1,6 @@
 /config.json
-/deps
 /discordia.log
 /gateway.json
+/deps
+!/deps/discordia-interactions
+!/deps/discordia-slash

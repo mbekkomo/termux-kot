@@ -1,3 +1,9 @@
 [submodule ".luals-defs/luvit"]
 	path = .luals-defs/luvit
 	url = https://github.com/Bilal2453/luvit-meta
+[submodule "deps/discordia-interactions"]
+	path = deps/discordia-interactions
+	url = https://github.com/Bilal2453/discordia-interactions.git
+[submodule "deps/discordia-slash"]
+	path = deps/discordia-slash
+	url = https://github.com/GitSparTV/discordia-slash
