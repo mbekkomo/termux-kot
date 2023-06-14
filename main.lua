@@ -38,10 +38,9 @@ end
 cmds[#cmds + 1] = {
 	name = "help",
 	description = "Show this message about usage of commands.",
-    options = {
-        slash_tools.boolean("internal", "Display with also internal commands.")
-            :setRequired(false)
-    },
+	options = {
+		slash_tools.boolean("internal", "Display with also internal commands."):setRequired(false),
+	},
 	cb = function(ia, args)
 		local cmd_helpstr = ""
 
@@ -55,7 +54,7 @@ cmds[#cmds + 1] = {
 			content = ("\
 \27[31m:: Commands ::\27[0m\n\
 %s"):format(cmd_helpstr),
-			code = "ansi"
+			code = "ansi",
 		})
 	end,
 }
@@ -75,27 +74,27 @@ client:on("ready", function()
 		coroutine.wrap(client.setActivity)(client, status[math.random(#status)])
 	end)
 
-    for _, cmd_slash in pairs(client:getGlobalApplicationCommands()) do
-        client:deleteGlobalApplicationCommand(cmd_slash)
-    end
+	for _, cmd_slash in pairs(client:getGlobalApplicationCommands()) do
+		client:deleteGlobalApplicationCommand(cmd_slash)
+	end
 
-    for _, cmd_obj in ipairs(cmds) do
-        local slash_cmd = slash_tools.slashCommand(cmd_obj.name, cmd_obj.description)
-        for _, option in ipairs(cmd_obj.options) do
-            slash_cmd:addOption(option)
-        end
-        client:createGlobalApplicationCommand(slash_cmd)
-    end
+	for _, cmd_obj in ipairs(cmds) do
+		local slash_cmd = slash_tools.slashCommand(cmd_obj.name, cmd_obj.description)
+		for _, option in ipairs(cmd_obj.options) do
+			slash_cmd:addOption(option)
+		end
+		client:createGlobalApplicationCommand(slash_cmd)
+	end
 end)
 
 ---@diagnostic disable-next-line:redundant-parameter
 client:on("slashCommand", function(ia, cmd, args)
-    for _, cmd_obj in ipairs(cmds) do
-        if cmd_obj.name == cmd.name then
-            cmd_obj.cb(ia, args, config)
-            client:info("%s used /%s command", ia.user.username, cmd.name)
-        end
-    end
+	for _, cmd_obj in ipairs(cmds) do
+		if cmd_obj.name == cmd.name then
+			cmd_obj.cb(ia, args, config)
+			client:info("%s used /%s command", ia.user.username, cmd.name)
+		end
+	end
 end)
 
 client:on("messageCreate", function(msg)
@@ -105,10 +104,14 @@ client:on("messageCreate", function(msg)
 
 	local showcase_chann = "712954974983684137"
 
-	if msg.channel.id == showcase_chann and
-        not (msg.content:find("```.+```")
-        or msg.attachment
-        or lpeg.P({ patt_uri.uri + 1 * lpeg.V(1) }):match(msg.content)) then
+	if
+		msg.channel.id == showcase_chann
+		and not (
+			msg.content:find("```.+```")
+			or msg.attachment
+			or lpeg.P({ patt_uri.uri + 1 * lpeg.V(1) }):match(msg.content)
+		)
+	then
 		msg:delete()
 		client:info("Catched %s's message!", msg.author.username)
 

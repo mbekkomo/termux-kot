@@ -6,7 +6,7 @@ local uptime = os.time()
 return {
 	name = "stats",
 	description = "Show statistics of the bot.",
-    options = {},
+	options = {},
 	cb = function(ia)
 		local memory = round(process:memoryUsage().heapUsed / 1024 / 1024, 2)
 		local time = discordia.Time.fromSeconds(os.time() - uptime):toString()
