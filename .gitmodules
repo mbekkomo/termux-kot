@@ -1,0 +1,3 @@
+[submodule ".luals-defs/luvit"]
+	path = .luals-defs/luvit
+	url = https://github.com/Bilal2453/luvit-meta
