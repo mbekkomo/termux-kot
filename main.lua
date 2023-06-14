@@ -27,7 +27,10 @@ for path in fs.scandirSync("commands") do
 	local cmd, err = load(assert(fs.readFileSync("commands/" .. path)), "@commands/" .. path, "t", env)
 
 	if cmd and not err then
-		cmds[#cmds + 1] = cmd()
+		local cmd_obj = cmd()
+        cmd_obj.description = cmd_obj.owner_only and cmd_obj.description .. " (Owner only)" or cmd_obj.description
+
+        cmds[#cmds+1] = cmd_obj
 		client:info("Loaded successfully: %s", path)
 	else
 		client:error("Failed to load: %s", path)
@@ -37,7 +40,7 @@ end
 
 cmds[#cmds + 1] = {
 	name = "help",
-	description = "Show this message about usage of commands.",
+	description = "Show message about commands.",
 	options = {
 		slash_tools.boolean("internal", "Display with also internal commands."):setRequired(false),
 	},
@@ -69,14 +72,10 @@ client:on("ready", function()
 
 	math.randomseed(os.time())
 	client:setActivity(status[math.random(#status)])
-	timer.setInterval(60 * 1000, function()
+	timer.setInterval(120 * 1000, function()
 		math.randomseed(os.time())
 		coroutine.wrap(client.setActivity)(client, status[math.random(#status)])
 	end)
-
-	for _, cmd_slash in pairs(client:getGlobalApplicationCommands()) do
-		client:deleteGlobalApplicationCommand(cmd_slash)
-	end
 
 	for _, cmd_obj in ipairs(cmds) do
 		local slash_cmd = slash_tools.slashCommand(cmd_obj.name, cmd_obj.description)
@@ -91,7 +90,10 @@ end)
 client:on("slashCommand", function(ia, cmd, args)
 	for _, cmd_obj in ipairs(cmds) do
 		if cmd_obj.name == cmd.name then
-			cmd_obj.cb(ia, args, config)
+            if cmd_obj.owner_only and ia.user.id ~= config.ownerid then
+                break
+            end
+			cmd_obj.cb(ia, args or {}, config)
 			client:info("%s used /%s command", ia.user.username, cmd.name)
 		end
 	end
