@@ -8,12 +8,12 @@ local V = lpeg.V
 local Cc = lpeg.Cc
 local Cg = lpeg.Cg
 
-local util = require "lpeg_patterns.util"
+local util = require "lpeg_patterns/util"
 
-local core = require "lpeg_patterns.core"
+local core = require "lpeg_patterns/core"
 local HEXDIG = core.HEXDIG
 
-local IPv4address = require "lpeg_patterns.IPv4".IPv4address
+local IPv4address = require "lpeg_patterns/IPv4".IPv4address
 
 local IPv6_methods = {}
 local IPv6_mt = {

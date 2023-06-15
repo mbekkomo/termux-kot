@@ -1,7 +1,7 @@
 -- RFC 5646 Section 2.1
 
 local lpeg = require "lpeg"
-local core = require "lpeg_patterns.core"
+local core = require "lpeg_patterns/core"
 
 local C = lpeg.C
 local P = lpeg.P
