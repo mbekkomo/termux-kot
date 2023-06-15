@@ -145,8 +145,11 @@ client:on("messageCreate", function(msg)
 						value = msg.content,
 					},
 				},
+                footer = {
+                    text = "Author: "..msg.author.id
+                },
 				color = 0x00cccc,
-				timestamp = discordia.Date():toISO("T", "Z"),
+				timestamp = discordia.Date():toISO("T", "Z")
 			},
 		})
 	end
