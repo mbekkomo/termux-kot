@@ -105,6 +105,7 @@ client:on("messageCreate", function(msg)
 	end
 
 	local showcase_chann = "712954974983684137"
+    local modlogs_chann = "810521091973840957"
 
 	if
 		msg.channel.id == showcase_chann
@@ -121,9 +122,32 @@ client:on("messageCreate", function(msg)
 			content = "Please open a thread and talk there meow x3",
 			mention = msg.author,
 		})
-		timer.sleep(3000)
-		bot_msg:delete()
-		return
+		timer.setTimeout(3000, function()
+		    coroutine.wrap(bot_msg.delete)(bot_msg)
+        end)
+
+        ---@diagnostic disable-next-line:redundant-parameter
+        local modlogs_textchann = msg.guild.textChannels:find(function(c)
+            ---@diagnostic disable-next-line:redundant-return-value
+            return c.id == modlogs_chann
+        end)
+        ---@cast modlogs_textchann TextChannel
+
+        modlogs_textchann:send({
+            embed = {
+                author = {
+                    name = msg.author.name .. "#" .. msg.author.discriminator,
+                    icon_url = msg.author.avatarURL
+                },
+                fields = {
+                    {
+                        name = ("Catched <@%s>'s message!"):format(msg.author.id),
+                        value = msg.content
+                    }
+                },
+                color = 0x00cccc
+            }
+        })
 	end
 end)
 
