@@ -4,6 +4,3 @@
 /deps
 !/deps/discordia-interactions
 !/deps/discordia-slash
-
-# ignore cache from commands
-/cat.jpg
