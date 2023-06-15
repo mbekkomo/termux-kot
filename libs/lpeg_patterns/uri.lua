@@ -10,15 +10,15 @@ local Cg = lpeg.Cg
 local Cs = lpeg.Cs
 local Ct = lpeg.Ct
 
-local util = require "lpeg_patterns.util"
+local util = require "lpeg_patterns/util"
 
-local core = require "lpeg_patterns.core"
+local core = require "lpeg_patterns/core"
 local ALPHA = core.ALPHA
 local DIGIT = core.DIGIT
 local HEXDIG = core.HEXDIG
 
-local IPv4address = require "lpeg_patterns.IPv4".IPv4address
-local IPv6address = require "lpeg_patterns.IPv6".IPv6address
+local IPv4address = require "lpeg_patterns/IPv4".IPv4address
+local IPv6address = require "lpeg_patterns/IPv6".IPv6address
 
 local _M = {}
 

@@ -3,7 +3,7 @@ local fs = require("fs")
 local json = require("json")
 
 local lpeg = require("lpeg")
-local patt_uri = require("lpeg_patterns.uri")
+local patt_uri = require("lpeg_patterns/uri")
 
 local config = json.decode((assert(fs.readFileSync("config.json"), "cannot find config.json!")))
 local status = json.decode((assert(fs.readFileSync("status.json"), "cannot find status.json!")))

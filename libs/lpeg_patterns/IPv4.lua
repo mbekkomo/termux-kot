@@ -5,7 +5,7 @@ local P = lpeg.P
 local R = lpeg.R
 local Cg = lpeg.Cg
 
-local core = require "lpeg_patterns.core"
+local core = require "lpeg_patterns/core"
 local DIGIT = core.DIGIT
 
 local dec_octet = (

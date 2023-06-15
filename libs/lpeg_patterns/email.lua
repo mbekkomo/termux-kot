@@ -11,7 +11,7 @@ local Cg = lpeg.Cg
 local Ct = lpeg.Ct
 local Cs = lpeg.Cs
 
-local core = require "lpeg_patterns.core"
+local core = require "lpeg_patterns/core"
 local CHAR = core.CHAR
 local CRLF = core.CRLF
 local CTL = core.CTL

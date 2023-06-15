@@ -4,11 +4,11 @@ https://tools.ietf.org/html/rfc7231
 ]]
 
 local lpeg = require "lpeg"
-local core = require "lpeg_patterns.core"
-local email = require "lpeg_patterns.email"
-local language = require "lpeg_patterns.language"
-local uri = require "lpeg_patterns.uri"
-local util = require "lpeg_patterns.util"
+local core = require "lpeg_patterns/core"
+local email = require "lpeg_patterns/email"
+local language = require "lpeg_patterns/language"
+local uri = require "lpeg_patterns/uri"
+local util = require "lpeg_patterns/util"
 
 local C = lpeg.C
 local Cc = lpeg.Cc
