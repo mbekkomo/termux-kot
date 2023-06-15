@@ -28,9 +28,9 @@ for path in fs.scandirSync("commands") do
 
 	if cmd and not err then
 		local cmd_obj = cmd()
-        cmd_obj.description = cmd_obj.owner_only and cmd_obj.description .. " (Owner only)" or cmd_obj.description
+		cmd_obj.description = cmd_obj.owner_only and cmd_obj.description .. " (Owner only)" or cmd_obj.description
 
-        cmds[#cmds+1] = cmd_obj
+		cmds[#cmds + 1] = cmd_obj
 		client:info("Loaded successfully: %s", path)
 	else
 		client:error("Failed to load: %s", path)
@@ -90,9 +90,9 @@ end)
 client:on("slashCommand", function(ia, cmd, args)
 	for _, cmd_obj in ipairs(cmds) do
 		if cmd_obj.name == cmd.name then
-            if cmd_obj.owner_only and ia.user.id ~= config.ownerid then
-                break
-            end
+			if cmd_obj.owner_only and ia.user.id ~= config.ownerid then
+				break
+			end
 			cmd_obj.cb(ia, args or {}, config)
 			client:info("%s used /%s command", ia.user.username, cmd.name)
 		end
@@ -105,7 +105,7 @@ client:on("messageCreate", function(msg)
 	end
 
 	local showcase_chann = "712954974983684137"
-    local modlogs_chann = "810521091973840957"
+	local modlogs_chann = "810521091973840957"
 
 	if
 		msg.channel.id == showcase_chann
@@ -123,32 +123,32 @@ client:on("messageCreate", function(msg)
 			mention = msg.author,
 		})
 		timer.setTimeout(3000, function()
-		    coroutine.wrap(bot_msg.delete)(bot_msg)
-        end)
+			coroutine.wrap(bot_msg.delete)(bot_msg)
+		end)
 
-        ---@diagnostic disable-next-line:redundant-parameter
-        local modlogs_textchann = msg.guild.textChannels:find(function(c)
-            ---@diagnostic disable-next-line:redundant-return-value
-            return c.id == modlogs_chann
-        end)
-        ---@cast modlogs_textchann TextChannel
+		---@diagnostic disable-next-line:redundant-parameter
+		local modlogs_textchann = msg.guild.textChannels:find(function(c)
+			---@diagnostic disable-next-line:redundant-return-value
+			return c.id == modlogs_chann
+		end)
+		---@cast modlogs_textchann TextChannel
 
-        modlogs_textchann:send({
-            embed = {
-                author = {
-                    name = msg.author.name .. "#" .. msg.author.discriminator,
-                    icon_url = msg.author.avatarURL
-                },
-                fields = {
-                    {
-                        name = ("Catched <@%s>'s message!"):format(msg.author.id),
-                        value = msg.content
-                    }
-                },
-                color = 0x00cccc,
-                timestamp = discordia.Date():toISO("T", "Z")
-            }
-        })
+		modlogs_textchann:send({
+			embed = {
+				author = {
+					name = msg.author.name .. "#" .. msg.author.discriminator,
+					icon_url = msg.author.avatarURL,
+				},
+				fields = {
+					{
+						name = ("Catched <@%s>'s message!"):format(msg.author.id),
+						value = msg.content,
+					},
+				},
+				color = 0x00cccc,
+				timestamp = discordia.Date():toISO("T", "Z"),
+			},
+		})
 	end
 end)
 
