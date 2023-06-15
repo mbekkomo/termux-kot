@@ -1,4 +1,4 @@
-local timer = require("timer")
+3local timer = require("timer")
 local fs = require("fs")
 local json = require("json")
 
@@ -116,7 +116,7 @@ client:on("messageCreate", function(msg)
 		)
 	then
 		msg:delete()
-		client:info("Catched %s's message!", msg.author.username)
+		client:info("Caughted %s's message!", msg.author.username)
 
 		local bot_msg = msg:reply({
 			content = "Please open a thread and talk there meow x3",
@@ -139,15 +139,10 @@ client:on("messageCreate", function(msg)
 					name = msg.author.name .. "#" .. msg.author.discriminator,
 					icon_url = msg.author.avatarURL,
 				},
-				fields = {
-					{
-						name = ("Catched <@%s>'s message!"):format(msg.author.id),
-						value = msg.content,
-					},
-				},
 				footer = {
 					text = "Author: " .. msg.author.id,
 				},
+                description = ("**Caughted <@%s>'s message!**\n%s"):format(msg.author.id, msg.content),
 				color = 0x00cccc,
 				timestamp = discordia.Date():toISO("T", "Z"),
 			},
