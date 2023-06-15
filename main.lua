@@ -145,7 +145,8 @@ client:on("messageCreate", function(msg)
                         value = msg.content
                     }
                 },
-                color = 0x00cccc
+                color = 0x00cccc,
+                timestamp = discordia.Date():toISO("T", "Z")
             }
         })
 	end
