@@ -20,14 +20,16 @@ return {
             ia:reply(("Failed to GET: %d %s"):format(res.code, res.reason), true)
         end
 
-        local f = assert(io.open("cat.jpg", "w+b"))
+        local tmp_jpg = os.tmpname() .. ".jpg"
+
+        local f = assert(io.open(tmp_jpg, "w+b"))
         f:write(body)
         f:close()
 
         local a_maxwell = ia.guild.emojis:find(function(e) return e.name == "Maxwell" end)
         ia:reply({
             content = ("Here's your cat image <a:Maxwell:%s>"):format(tostring(a_maxwell.id)),
-            file = "cat.jpg"
+            file = tmp_jpg
         })
     end
 }
