@@ -142,7 +142,7 @@ client:on("messageCreate", function(msg)
 				footer = {
 					text = "Author: " .. msg.author.id,
 				},
-                description = ("**Caught <@%s>'s message!**\n%s"):format(msg.author.id, msg.content),
+				description = ("**Caught <@%s>'s message!**\n%s"):format(msg.author.id, msg.content),
 				color = 0x00cccc,
 				timestamp = discordia.Date():toISO("T", "Z"),
 			},
