@@ -11,8 +11,8 @@ local status = json.decode((assert(fs.readFileSync("status.json"), "cannot find 
 ---@type discordia
 local discordia = require("discordia")
 local slash_tools = require("discordia-slash").util.tools()
----@type Embed
 local Embed = require("util/embed")
+local DR = require("util/discord-request")
 local ext = discordia.extensions
 ext.string()
 
@@ -106,17 +106,14 @@ client:on("slashCommand", function(ia, cmd, args)
 end)
 
 client:on("messageCreate", function(msg)
+	local showcase_chann = "712954974983684137"
+	local modlogs_chann = "810521091973840957"
 	if msg.author.bot then
 		return
 	end
 
-	local showcase_chann = "712954974983684137"
-    local showcase2_chann = "1118815871276687522"
-	local modlogs_chann = "810521091973840957"
-
 	if
-		msg.channel.id == showcase_chann
---        or msg.channel.id == showcase2_chann
+        msg.channel.id == showcase_chann
 		and not (
 			msg.content:find("```.+```")
 			or msg.attachment
@@ -126,16 +123,8 @@ client:on("messageCreate", function(msg)
 		msg:delete()
 		client:info("Caught %s's message!", msg.author.username)
 
-        local slash_id
-        for k, v in pairs(client:getGlobalApplicationCommands()) do
-            if v.name == "showcase" then
-                slash_id = k
-                break
-            end
-        end
-
 		local bot_msg = msg:reply({
-			content = ("If you want to create a showcase post, run </showcase:%s>. If you want to talk about the creation, talk in the thread below the post meow x3"):format(slash_id),
+            content = "Talk in the thread under the message meow x3",
 			mention = msg.author,
 		})
 		timer.setTimeout(3000, function()
@@ -149,20 +138,32 @@ client:on("messageCreate", function(msg)
 		end)
 		---@cast modlogs_textchann TextChannel
 
+        local embed = Embed:new()
+            :setAuthor({
+                name = msg.author.name .. "#" .. msg.author.discriminator,
+                icon_url = msg.author.avatarURL
+            })
+            :setFooter({
+                text = "Author: ".. msg.author.id
+            })
+            :setDescription(("**Caught <@%s>'s message!**\n%s"):format(
+                msg.author.id, msg.content))
+            :setColor(0x00aaff)
+            :setTimestamp(discordia.Date():toISO("T", "Z"))
+
 		modlogs_textchann:send({
-			embed = {
-				author = {
-					name = msg.author.name .. "#" .. msg.author.discriminator,
-					icon_url = msg.author.avatarURL,
-				},
-				footer = {
-					text = "Author: " .. msg.author.id,
-				},
-				description = ("**Caught <@%s>'s message!**\n%s"):format(msg.author.id, msg.content),
-				color = 0x00cccc,
-				timestamp = discordia.Date():toISO("T", "Z"),
-			},
-		})
+			embed = embed:returnEmbed()
+        })
+    elseif msg.channel.id == showcase_chann then
+        local body = json.encode({
+            name = msg.author.username.."'s thread post"
+        })
+
+        DR:new(config.token, 9)
+            :request("POST", ("/channels/%s/messages/%s/threads"):format(msg.channel.id, msg.id), {}, {
+                { "Content-Length", tostring(#body) },
+                { "Content-Type", "application/json" }
+            }, body)
 	end
 end)
 
