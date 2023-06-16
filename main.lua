@@ -11,6 +11,8 @@ local status = json.decode((assert(fs.readFileSync("status.json"), "cannot find 
 ---@type discordia
 local discordia = require("discordia")
 local slash_tools = require("discordia-slash").util.tools()
+---@type Embed
+local Embed = require("util/embed")
 local ext = discordia.extensions
 ext.string()
 
@@ -40,24 +42,28 @@ end
 
 cmds[#cmds + 1] = {
 	name = "help",
-	description = "Show message about commands.",
+	description = "Show list of commands.",
 	options = {
 		slash_tools.boolean("internal", "Display with also internal commands."):setRequired(false),
 	},
 	cb = function(ia, args)
-		local cmd_helpstr = ""
+		local embed = Embed:new()
+            :setTitle("Help")
+            :setDescription("Here's the list of all commands.")
+            :setColor(0x00aaff)
 
 		for _, v in ipairs(cmds) do
 			if not v.internal or v.internal and args.internal then
-				cmd_helpstr = cmd_helpstr .. ("%-7s \27[34m.. %s\27[0m\n"):format(v.name, v.description)
+                embed:addField({
+                    name = v.name,
+                    value = v.description,
+                    inline = true
+                })
 			end
 		end
 
 		ia:reply({
-			content = ("\
-\27[31m:: Commands ::\27[0m\n\
-%s"):format(cmd_helpstr),
-			code = "ansi",
+			embed = embed:returnEmbed()
 		})
 	end,
 }
@@ -105,10 +111,12 @@ client:on("messageCreate", function(msg)
 	end
 
 	local showcase_chann = "712954974983684137"
+    local showcase2_chann = "1118815871276687522"
 	local modlogs_chann = "810521091973840957"
 
 	if
 		msg.channel.id == showcase_chann
+--        or msg.channel.id == showcase2_chann
 		and not (
 			msg.content:find("```.+```")
 			or msg.attachment
@@ -118,8 +126,16 @@ client:on("messageCreate", function(msg)
 		msg:delete()
 		client:info("Caught %s's message!", msg.author.username)
 
+        local slash_id
+        for k, v in pairs(client:getGlobalApplicationCommands()) do
+            if v.name == "showcase" then
+                slash_id = k
+                break
+            end
+        end
+
 		local bot_msg = msg:reply({
-			content = "Please open a thread and talk there meow x3",
+			content = ("If you want to create a showcase post, run </showcase:%s>. If you want to talk about the creation, talk in the thread below the post meow x3"):format(slash_id),
 			mention = msg.author,
 		})
 		timer.setTimeout(3000, function()

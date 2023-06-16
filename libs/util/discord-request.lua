@@ -9,7 +9,7 @@ local DiscordRequest = Object:extend()
 ---@param token string
 ---@param api_v string|integer
 ---@return DiscordRequest
-function DiscordRequest:__init(token, api_v)
+function DiscordRequest:initialize(token, api_v)
     self.token = token
     self.url = "https://discord.com/api/v"..api_v
     return self

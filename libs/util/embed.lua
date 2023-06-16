@@ -15,7 +15,7 @@ end
 local Embed = Object:extend()
 
 ---@return Embed
-function Embed:__init()
+function Embed:initialize()
     self.embed = {}
     return self
 end

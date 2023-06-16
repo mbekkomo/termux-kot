@@ -9,7 +9,7 @@ local uri_patt = require("lpeg_patterns/uri")
 
 return {
     name = "showcase",
-    description = "Create a showcase message.",
+    description = "Create a showcase post.",
     options = {
         slash_tools.string("title", "Title of your creation.")
             :setRequired(true),
@@ -25,7 +25,7 @@ return {
             return
         end
 
-        local embed_obj = Embed()
+        local embed_obj = Embed:new()
             :setTitle(args.title)
             :setTimestamp(require("discordia").Date():toISO("T", "Z"))
             :setAuthor({
@@ -59,7 +59,7 @@ return {
             name = args.title
         })
 
-        DiscordRequest(config.token, 9)
+        DiscordRequest:new(config.token, 9)
             :request("POST", ("/channels/%s/messages/%s/threads"):format(ia.channelId, msg.id), {}, {
                 { "Content-Length", tostring(#body) },
                 { "Content-Type", "application/json" }
