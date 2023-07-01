@@ -47,23 +47,20 @@ cmds[#cmds + 1] = {
 		slash_tools.boolean("internal", "Display with also internal commands."):setRequired(false),
 	},
 	cb = function(ia, args)
-		local embed = Embed:new()
-            :setTitle("Help")
-            :setDescription("Here's the list of all commands.")
-            :setColor(0x00aaff)
+		local embed = Embed:new():setTitle("Help"):setDescription("Here's the list of all commands."):setColor(0x00aaff)
 
 		for _, v in ipairs(cmds) do
 			if not v.internal or v.internal and args.internal then
-                embed:addField({
-                    name = v.name,
-                    value = v.description,
-                    inline = true
-                })
+				embed:addField({
+					name = v.name,
+					value = v.description,
+					inline = true,
+				})
 			end
 		end
 
 		ia:reply({
-			embed = embed:returnEmbed()
+			embed = embed:returnEmbed(),
 		})
 	end,
 }
@@ -113,7 +110,7 @@ client:on("messageCreate", function(msg)
 	end
 
 	if
-        msg.channel.id == showcase_chann
+		msg.channel.id == showcase_chann
 		and not (
 			msg.content:find("```.+```")
 			or msg.attachment
@@ -124,7 +121,7 @@ client:on("messageCreate", function(msg)
 		client:info("Caught %s's message!", msg.author.username)
 
 		local bot_msg = msg:reply({
-            content = "Talk in the thread under the message meow x3",
+			content = "Talk in the thread under the message meow x3",
 			mention = msg.author,
 		})
 		timer.setTimeout(3000, function()
@@ -138,32 +135,31 @@ client:on("messageCreate", function(msg)
 		end)
 		---@cast modlogs_textchann TextChannel
 
-        local embed = Embed:new()
-            :setAuthor({
-                name = msg.author.name .. "#" .. msg.author.discriminator,
-                icon_url = msg.author.avatarURL
-            })
-            :setFooter({
-                text = "Author: ".. msg.author.id
-            })
-            :setDescription(("**Caught <@%s>'s message!**\n%s"):format(
-                msg.author.id, msg.content))
-            :setColor(0x00aaff)
-            :setTimestamp(discordia.Date():toISO("T", "Z"))
+		local embed = Embed:new()
+			:setAuthor({
+				name = msg.author.name .. "#" .. msg.author.discriminator,
+				icon_url = msg.author.avatarURL,
+			})
+			:setFooter({
+				text = "Author: " .. msg.author.id,
+			})
+			:setDescription(("**Caught <@%s>'s message!**\n%s"):format(msg.author.id, msg.content))
+			:setColor(0x00aaff)
+			:setTimestamp(discordia.Date():toISO("T", "Z"))
 
 		modlogs_textchann:send({
-			embed = embed:returnEmbed()
-        })
-    elseif msg.channel.id == showcase_chann then
-        local body = json.encode({
-            name = msg.author.username.."'s thread post"
-        })
+			embed = embed:returnEmbed(),
+		})
+	elseif msg.channel.id == showcase_chann then
+		local body = json.encode({
+			name = msg.author.username .. "'s thread post",
+		})
 
-        DR:new(config.token, 9)
-            :request("POST", ("/channels/%s/messages/%s/threads"):format(msg.channel.id, msg.id), {}, {
-                { "Content-Length", tostring(#body) },
-                { "Content-Type", "application/json" }
-            }, body)
+		DR:new(config.token, 9)
+			:request("POST", ("/channels/%s/messages/%s/threads"):format(msg.channel.id, msg.id), {}, {
+				{ "Content-Length", tostring(#body) },
+				{ "Content-Type", "application/json" },
+			}, body)
 	end
 end)
 

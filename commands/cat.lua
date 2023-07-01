@@ -21,16 +21,16 @@ return {
 			return e.name == "Maxwell"
 		end)
 
-        local embed = Embed:new()
-            :setTitle("Cat")
-            :setDescription(("Here's your cat image <a:Maxwell:%s>"):format(a_maxwell.id))
-            :setImage({
-                url = cat_obj[1].url
-            })
-            :setColor(0x00aaff)
+		local embed = Embed:new()
+			:setTitle("Cat")
+			:setDescription(("Here's your cat image <a:Maxwell:%s>"):format(a_maxwell.id))
+			:setImage({
+				url = cat_obj[1].url,
+			})
+			:setColor(0x00aaff)
 
 		ia:reply({
-			embed = embed:returnEmbed()
+			embed = embed:returnEmbed(),
 		})
 	end,
 }
