@@ -5,8 +5,8 @@ local json = require("json")
 local lpeg = require("lpeg")
 local patt_uri = require("lpeg_patterns/uri")
 
-local config = json.decode((assert(fs.readFileSync("config.json"), "cannot find config.json!")))
-local status = json.decode((assert(fs.readFileSync("status.json"), "cannot find status.json!")))
+local config = json.decode(assert(fs.readFileSync("config.json"), "cannot find config.json!"))
+local status = json.decode(assert(fs.readFileSync("status.json"), "cannot find status.json!"))
 
 ---@type discordia
 local discordia = require("discordia")
@@ -16,151 +16,315 @@ local DR = require("util/discord-request")
 local ext = discordia.extensions
 ext.string()
 
+local function dict_length(t)
+    local count = 0
+    for _ in pairs(t) do
+        count = count + 1
+    end
+    return count
+end
+
 ---@diagnostic disable-next-line:undefined-field
 local client = discordia.Client():useApplicationCommands()
----@diagnostic disable-next-line:undefined-field -- discordia meta doesn't support 2.11.0
+---@diagnostic disable-next-line:undefined-field
 client:enableIntents(discordia.enums.gatewayIntent.messageContent)
 
 local env = setmetatable({ require = require }, { __index = _G })
 
 local cmds = {}
 for path in fs.scandirSync("commands") do
-	---@diagnostic disable-next-line:param-type-mismatch
-	local cmd, err = load(assert(fs.readFileSync("commands/" .. path)), "@commands/" .. path, "t", env)
+    ---@diagnostic disable-next-line:param-type-mismatch
+    local cmd, err = load(assert(fs.readFileSync("commands/" .. path)), "@commands/" .. path, "t", env)
 
-	if cmd and not err then
-		local cmd_obj = cmd()
-		cmd_obj.description = cmd_obj.owner_only and cmd_obj.description .. " (Owner only)" or cmd_obj.description
+    if cmd and not err then
+        local cmd_obj = cmd()
+        cmd_obj.description = cmd_obj.owner_only and cmd_obj.description .. " (Owner only)" or cmd_obj.description
 
-		cmds[#cmds + 1] = cmd_obj
-		client:info("Loaded successfully: %s", path)
-	else
-		client:error("Failed to load: %s", path)
-		client:error(err or "")
-	end
+        cmds[#cmds + 1] = cmd_obj
+        client:info("Command loaded: %s", cmd_obj.name)
+    else
+        client:error("Failed to load: %s", path)
+        client:error(err or "")
+    end
 end
-
-cmds[#cmds + 1] = {
-	name = "help",
-	description = "Show list of commands.",
-	options = {
-		slash_tools.boolean("internal", "Display with also internal commands."):setRequired(false),
-	},
-	cb = function(ia, args)
-		local embed = Embed:new():setTitle("Help"):setDescription("Here's the list of all commands."):setColor(0x00aaff)
-
-		for _, v in ipairs(cmds) do
-			if not v.internal or v.internal and args.internal then
-				embed:addField({
-					name = v.name,
-					value = v.description,
-					inline = true,
-				})
-			end
-		end
-
-		ia:reply({
-			embed = embed:returnEmbed(),
-		})
-	end,
-}
 
 ---------------------------------------------------------------------------------
 
 ---@cast client Client
 ---@diagnostic disable:need-check-nil
 ---@diagnostic disable:undefined-field
+cmds[#cmds + 1] = {
+    name = "help",
+    description = "Show list of commands.",
+    options = {
+        slash_tools.boolean("internal", "Display internal commands."):setRequired(false),
+    },
+    cb = function(ia, args)
+        local embed = Embed:new():setTitle("Help"):setDescription("Here's the list of all commands."):setColor(0x00aaff)
+
+        for _, v in ipairs(cmds) do
+            if not v.internal or v.internal and args.internal then
+                embed:addField {
+                    name = v.name,
+                    value = v.description,
+                    inline = true,
+                }
+            end
+        end
+
+        ia:reply {
+            embed = embed:returnEmbed(),
+        }
+    end,
+}
+
+cmds[#cmds + 1] = {
+    internal = true,
+    owner_only = true,
+    name = "shutdown",
+    description = "Shutdown the bot completely. (Owner only)",
+    options = {},
+    cb = function(ia)
+        ia:reply("Successfully shutdown the bot")
+        client:stop()
+    end,
+}
+
+local function catch_err(ia, err)
+    local pp = require("pretty-print")
+
+    if err then
+        ia:reply(("**ERROR**\n```\n%s```"):format(pp.strip(pp.dump(err))))
+        return true
+    end
+end
+
+cmds[#cmds + 1] = {
+    internal = true,
+    owner_only = true,
+    name = "update",
+    description = "Fetch and pull commits to local repo. (Owner only)",
+    options = {
+        slash_tools.boolean("rebase", "Rebase instead fast-forward."):setRequired(false),
+    },
+    cb = function(ia, args)
+        ia:replyDeferred()
+
+        local cp = require("childprocess")
+        cp.exec(
+            "git pull --" .. (args.rebase and "rebase" or "no-rebase"),
+            coroutine.wrap(function(err, stdout, stderr)
+                if catch_err(ia, err) then
+                    return
+                end
+                ia:reply(("**STDOUT**\n```\n%s```\n**STDERR**\n```\n%s```"):format(stdout, stderr))
+            end)
+        )
+    end,
+}
+
+table.sort(cmds, function(a, b)
+    return b.owner_only and not a.owner_only
+end)
+
 client:on("ready", function()
-	client:info("Purr~... Watching messages in the server :3")
+    client:info("Purr~... Watching messages in the server :3")
 
-	math.randomseed(os.time())
-	client:setActivity(status[math.random(#status)])
-	timer.setInterval(120 * 1000, function()
-		math.randomseed(os.time())
-		coroutine.wrap(client.setActivity)(client, status[math.random(#status)])
-	end)
+    math.randomseed(os.time())
+    client:setActivity(status[math.random(#status)])
+    timer.setInterval(120 * 1000, function()
+        math.randomseed(os.time())
+        coroutine.wrap(client.setActivity)(client, status[math.random(#status)])
+    end)
 
-	for _, cmd_obj in ipairs(cmds) do
-		local slash_cmd = slash_tools.slashCommand(cmd_obj.name, cmd_obj.description)
-		for _, option in ipairs(cmd_obj.options) do
-			slash_cmd:addOption(option)
-		end
-		client:createGlobalApplicationCommand(slash_cmd)
-	end
+    local commands = client:getGlobalApplicationCommands()
+    if dict_length(commands) ~= #cmds then
+        client:info("Cleaning cached commands")
+        for cmdid in pairs(commands) do
+            client:deleteGlobalApplicationCommand(cmdid)
+        end
+    end
+
+    for _, cmd_obj in ipairs(cmds) do
+        local slash_cmd = slash_tools.slashCommand(cmd_obj.name, cmd_obj.description)
+        for _, option in ipairs(cmd_obj.options) do
+            slash_cmd:addOption(option)
+        end
+        client:createGlobalApplicationCommand(slash_cmd)
+    end
 end)
 
 ---@diagnostic disable-next-line:redundant-parameter
 client:on("slashCommand", function(ia, cmd, args)
-	for _, cmd_obj in ipairs(cmds) do
-		if cmd_obj.name == cmd.name then
-			if cmd_obj.owner_only and ia.user.id ~= config.ownerid then
-				break
-			end
-			cmd_obj.cb(ia, args or {}, config)
-			client:info("%s used /%s command", ia.user.username, cmd.name)
-		end
-	end
+    for _, cmd_obj in ipairs(cmds) do
+        if cmd_obj.name == cmd.name then
+            if cmd_obj.owner_only and ia.user.id ~= config.ownerid then
+                break
+            end
+            cmd_obj.cb(ia, args or {}, config)
+            client:info(
+                "%s used /%s command",
+                ia.user.username
+                    .. (
+                        (tostring(ia.user.discriminator) == "0" or not ia.user.discriminator) and ""
+                        or "#" .. ia.user.discriminator
+                    ),
+                cmd.name
+            )
+            client:info("User: %s", ia.user.id)
+        end
+    end
 end)
 
 client:on("messageCreate", function(msg)
-	local showcase_chann = "712954974983684137"
-	local modlogs_chann = "810521091973840957"
-	if msg.author.bot then
-		return
-	end
+    local showcase_chann = "712954974983684137"
+    local modlogs_chann = "810521091973840957"
+    local whitelist_role = {
+        "977060375180738570",
+        "804014473080864829",
+        "650683641936084993",
+    }
 
-	if
-		msg.channel.id == showcase_chann
-		and not (
-			msg.content:find("```.+```")
-			or msg.attachment
-			or lpeg.P({ patt_uri.uri + 1 * lpeg.V(1) }):match(msg.content)
-		)
-	then
-		msg:delete()
-		client:info("Caught %s's message!", msg.author.username)
+    local username = msg.author.username
+        .. (
+            (tostring(msg.author.discriminator) == "0" or not msg.author.discriminator) and ""
+            or "#" .. msg.author.discriminator
+        )
 
-		local bot_msg = msg:reply({
-			content = "Talk in the thread under the message meow x3",
-			mention = msg.author,
-		})
-		timer.setTimeout(3000, function()
-			coroutine.wrap(bot_msg.delete)(bot_msg)
-		end)
+    if msg.author.bot then
+        return
+    end
 
-		---@diagnostic disable-next-line:redundant-parameter
-		local modlogs_textchann = msg.guild.textChannels:find(function(c)
-			---@diagnostic disable-next-line:redundant-return-value
-			return c.id == modlogs_chann
-		end)
-		---@cast modlogs_textchann TextChannel
+    for _, id in ipairs(whitelist_role) do
+        p(true)
+        if msg.member.roles:get(id) then
+            return
+        end
+    end
 
-		local embed = Embed:new()
-			:setAuthor({
-				name = msg.author.name .. "#" .. msg.author.discriminator,
-				icon_url = msg.author.avatarURL,
-			})
-			:setFooter({
-				text = "Author: " .. msg.author.id,
-			})
-			:setDescription(("**Caught <@%s>'s message!**\n%s"):format(msg.author.id, msg.content))
-			:setColor(0x00aaff)
-			:setTimestamp(discordia.Date():toISO("T", "Z"))
+    if
+        msg.channel.id == showcase_chann
+        and not (
+            msg.content:find("```.+```")
+            or msg.attachment
+            or lpeg.P({ patt_uri.uri + 1 * lpeg.V(1) }):match(msg.content)
+        )
+    then
+        msg:delete()
+        client:info("Caught %s's message!", username)
+        client:info("Author: %s", msg.author.id)
+        client:info("Message content: %s", msg.content)
+        local bot_msg = msg:reply {
+            content = "Talk in the thread under the message meow x3",
+            mention = msg.author,
+        }
+        timer.setTimeout(3000, function()
+            coroutine.wrap(bot_msg.delete)(bot_msg)
+        end)
 
-		modlogs_textchann:send({
-			embed = embed:returnEmbed(),
-		})
-	elseif msg.channel.id == showcase_chann then
-		local body = json.encode({
-			name = msg.author.username .. "'s thread post",
-		})
+        ---@diagnostic disable-next-line:redundant-parameter
+        local modlogs_textchann = msg.guild.textChannels:find(function(c)
+            ---@diagnostic disable-next-line:redundant-return-value
+            return c.id == modlogs_chann
+        end)
+        ---@cast modlogs_textchann TextChannel
 
-		DR:new(config.token, 9)
-			:request("POST", ("/channels/%s/messages/%s/threads"):format(msg.channel.id, msg.id), {}, {
-				{ "Content-Length", tostring(#body) },
-				{ "Content-Type", "application/json" },
-			}, body)
-	end
+        local embed = Embed:new()
+            :setAuthor({
+                name = username,
+                icon_url = msg.author.avatarURL,
+            })
+            :setFooter({
+                text = "Author: " .. msg.author.id,
+            })
+            :setDescription(("**Caught <@%s>'s message!**\n%s"):format(msg.author.id, msg.content))
+            :setColor(0x00aaff)
+            :setTimestamp(discordia.Date():toISO("T", "Z"))
+
+        modlogs_textchann:send {
+            embed = embed:returnEmbed(),
+        }
+    elseif msg.channel.id == showcase_chann then
+        local body = json.encode {
+            name = username .. "'s thread post",
+        }
+
+        DR:new(config.token, 9)
+            :request("POST", ("/channels/%s/messages/%s/threads"):format(msg.channel.id, msg.id), {}, {
+                { "Content-Length", tostring(#body) },
+                { "Content-Type", "application/json" },
+            }, body)
+    end
+end)
+
+client:on("messageUpdate", function (msg)
+    local showcase_chann = "712954974983684137"
+    local modlogs_chann = "810521091973840957"
+    local whitelist_role = {
+        "977060375180738570",
+        "804014473080864829",
+        "650683641936084993",
+    }
+
+    local username = msg.author.username
+        .. (
+            (tostring(msg.author.discriminator) == "0" or not msg.author.discriminator) and ""
+            or "#" .. msg.author.discriminator
+        )
+
+    if msg.author.bot then
+        return
+    end
+
+    for _, id in ipairs(whitelist_role) do
+        if msg.member.roles:get(id) then
+            return
+        end
+    end
+
+    if
+        msg.channel.id == showcase_chann
+        and not (
+            msg.content:find("```.+```")
+            or msg.attachment
+            or lpeg.P({ patt_uri.uri + 1 * lpeg.V(1) }):match(msg.content)
+        )
+    then
+        msg:delete()
+        client:info("Caught %s's message!", username)
+        client:info("Author: %s", msg.author.id)
+        client:info("Message content: %s", msg.content)
+        local bot_msg = msg:reply {
+            content = "Talk in the thread under the message meow x3",
+            mention = msg.author,
+        }
+        timer.setTimeout(3000, function()
+            coroutine.wrap(bot_msg.delete)(bot_msg)
+        end)
+
+        ---@diagnostic disable-next-line:redundant-parameter
+        local modlogs_textchann = msg.guild.textChannels:find(function(c)
+            ---@diagnostic disable-next-line:redundant-return-value
+            return c.id == modlogs_chann
+        end)
+        ---@cast modlogs_textchann TextChannel
+
+        local embed = Embed:new()
+            :setAuthor({
+                name = username,
+                icon_url = msg.author.avatarURL,
+            })
+            :setFooter({
+                text = "Author: " .. msg.author.id,
+            })
+            :setDescription(("**Caught <@%s>'s message!**\n%s"):format(msg.author.id, msg.content))
+            :setColor(0x00aaff)
+            :setTimestamp(discordia.Date():toISO("T", "Z"))
+
+        modlogs_textchann:send {
+            embed = embed:returnEmbed(),
+        }
+    end
 end)
 
 client:run("Bot " .. config.token)
