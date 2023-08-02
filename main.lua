@@ -195,13 +195,6 @@ client:on("messageCreate", function(msg)
         return
     end
 
-    for _, id in ipairs(whitelist_role) do
-        p(true)
-        if msg.member.roles:get(id) then
-            return
-        end
-    end
-
     if
         msg.channel.id == showcase_chann
         and not (
@@ -210,6 +203,12 @@ client:on("messageCreate", function(msg)
             or lpeg.P({ patt_uri.uri + 1 * lpeg.V(1) }):match(msg.content)
         )
     then
+        for _, id in ipairs(whitelist_role) do
+            if msg.member.roles:get(id) then
+                return
+            end
+        end
+
         msg:delete()
         client:info("Caught %s's message!", username)
         client:info("Author: %s", msg.author.id)
@@ -257,7 +256,7 @@ client:on("messageCreate", function(msg)
     end
 end)
 
-client:on("messageUpdate", function (msg)
+client:on("messageUpdate", function(msg)
     local showcase_chann = "712954974983684137"
     local modlogs_chann = "810521091973840957"
     local whitelist_role = {
@@ -276,12 +275,6 @@ client:on("messageUpdate", function (msg)
         return
     end
 
-    for _, id in ipairs(whitelist_role) do
-        if msg.member.roles:get(id) then
-            return
-        end
-    end
-
     if
         msg.channel.id == showcase_chann
         and not (
@@ -290,6 +283,12 @@ client:on("messageUpdate", function (msg)
             or lpeg.P({ patt_uri.uri + 1 * lpeg.V(1) }):match(msg.content)
         )
     then
+        for _, id in ipairs(whitelist_role) do
+            if msg.member.roles:get(id) then
+                return
+            end
+        end
+
         msg:delete()
         client:info("Caught %s's message!", username)
         client:info("Author: %s", msg.author.id)
