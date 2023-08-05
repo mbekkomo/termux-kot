@@ -16,6 +16,9 @@ local DR = require("util/discord-request")
 local ext = discordia.extensions
 ext.string()
 
+---@diagnostic disable-next-line:need-check-nil
+local api_9 = DR:new(config.token, 9)
+
 local function dict_length(t)
     local count = 0
     for _ in pairs(t) do
@@ -49,10 +52,108 @@ for path in fs.scandirSync("commands") do
 end
 
 ---------------------------------------------------------------------------------
-
 ---@cast client Client
 ---@diagnostic disable:need-check-nil
 ---@diagnostic disable:undefined-field
+
+local showcase_chann = config.dev and "1118815871276687522" or "712954974983684137"
+local modlogs_chann = "810521091973840957"
+local whitelist_role = {
+    "977060375180738570",
+    "804014473080864829",
+    "650683641936084993",
+}
+
+local function verify_message(msg)
+    return not (
+        msg.content:find("```.+```")
+        or msg.attachment
+        or lpeg.P({ patt_uri.uri + 1 * lpeg.V(1) }):match(msg.content)
+    )
+end
+
+local function make_thread(msg, username)
+    client:info("Created thread for %s", username)
+    client:info("User: %s", msg.author.id)
+    client:info("Thread/Message: %s", msg.id)
+
+    local body = json.encode {
+        name = username .. "'s thread post",
+    }
+
+    api_9:request("POST", ("/channels/%s/messages/%s/threads"):format(msg.channel.id, msg.id), {}, {
+        { "Content-Length", tostring(#body) },
+        { "Content-Type", "application/json" },
+    }, body)
+
+    ---@diagnostic disable-next-line:redundant-parameter
+    local modlogs_textchann = msg.guild.textChannels:find(function(c)
+        ---@diagnostic disable-next-line:redundant-return-value
+        return c.id == modlogs_chann
+    end)
+    ---@cast modlogs_textchann TextChannel
+
+    local embed = Embed:new()
+        :setAuthor {
+            name = username,
+            icon_url = msg.author.avatarURL,
+        }
+        :setFooter {
+            text = ("User: %s | Thread/Message: %s"):format(msg.author.id, msg.id),
+        }
+        :setDescription(
+            ("**Created thread for <@%s>!**\nhttps://discord.com/channels/%s/%s/%s"):format(
+                msg.author.id,
+                msg.guild.id,
+                msg.channel.id,
+                msg.id
+            )
+        )
+        :setColor(0x00aaff)
+        :setTimestamp(discordia.Date():toISO("T", "Z"))
+
+    modlogs_textchann:send {
+        embed = embed:returnEmbed(),
+    }
+end
+
+local function filter_message(msg, username)
+    msg:delete()
+    client:info("Caught %s's message!", username)
+    client:info("Author: %s", msg.author.id)
+    client:info("Message content: %s", msg.content)
+    local bot_msg = msg:reply {
+        content = "Talk in the thread under the message meow x3",
+        mention = msg.author,
+    }
+    timer.setTimeout(3000, function()
+        coroutine.wrap(bot_msg.delete)(bot_msg)
+    end)
+
+    ---@diagnostic disable-next-line:redundant-parameter
+    local modlogs_textchann = msg.guild.textChannels:find(function(c)
+        ---@diagnostic disable-next-line:redundant-return-value
+        return c.id == modlogs_chann
+    end)
+    ---@cast modlogs_textchann TextChannel
+
+    local embed = Embed:new()
+        :setAuthor {
+            name = username,
+            icon_url = msg.author.avatarURL,
+        }
+        :setFooter {
+            text = "Author: " .. msg.author.id,
+        }
+        :setDescription(("**Caught <@%s>'s message!**\n%s"):format(msg.author.id, msg.content))
+        :setColor(0x00aaff)
+        :setTimestamp(discordia.Date():toISO("T", "Z"))
+
+    modlogs_textchann:send {
+        embed = embed:returnEmbed(),
+    }
+end
+
 cmds[#cmds + 1] = {
     name = "help",
     description = "Show list of commands.",
@@ -85,8 +186,9 @@ cmds[#cmds + 1] = {
     description = "Shutdown the bot completely. (Owner only)",
     options = {},
     cb = function(ia)
-        ia:reply("Successfully shutdown the bot")
+        ia:reply("Successfully shutdown the bot.")
         client:stop()
+        os.exit(0, true)
     end,
 }
 
@@ -145,9 +247,9 @@ client:on("ready", function()
         end
     end
 
-    for _, cmd_obj in ipairs(cmds) do
+    for _, cmd_obj in pairs(cmds) do
         local slash_cmd = slash_tools.slashCommand(cmd_obj.name, cmd_obj.description)
-        for _, option in ipairs(cmd_obj.options) do
+        for _, option in pairs(cmd_obj.options) do
             slash_cmd:addOption(option)
         end
         client:createGlobalApplicationCommand(slash_cmd)
@@ -156,12 +258,11 @@ end)
 
 ---@diagnostic disable-next-line:redundant-parameter
 client:on("slashCommand", function(ia, cmd, args)
-    for _, cmd_obj in ipairs(cmds) do
+    for _, cmd_obj in pairs(cmds) do
         if cmd_obj.name == cmd.name then
             if cmd_obj.owner_only and ia.user.id ~= config.ownerid then
                 break
             end
-            cmd_obj.cb(ia, args or {}, config)
             client:info(
                 "%s used /%s command",
                 ia.user.username
@@ -172,157 +273,65 @@ client:on("slashCommand", function(ia, cmd, args)
                 cmd.name
             )
             client:info("User: %s", ia.user.id)
+            cmd_obj.cb(ia, args or {}, config)
         end
     end
 end)
 
 client:on("messageCreate", function(msg)
-    local showcase_chann = "712954974983684137"
-    local modlogs_chann = "810521091973840957"
-    local whitelist_role = {
-        "977060375180738570",
-        "804014473080864829",
-        "650683641936084993",
-    }
-
     local username = msg.author.username
         .. (
             (tostring(msg.author.discriminator) == "0" or not msg.author.discriminator) and ""
             or "#" .. msg.author.discriminator
         )
+    local has_no_thread = msg.content:match("||no thread||$") ~= nil
 
-    if msg.author.bot then
+    if msg.author.bot or msg.channel.id ~= showcase_chann then
         return
     end
 
-    if
-        msg.channel.id == showcase_chann
-        and not (
-            msg.content:find("```.+```")
-            or msg.attachment
-            or lpeg.P({ patt_uri.uri + 1 * lpeg.V(1) }):match(msg.content)
-        )
-    then
-        for _, id in ipairs(whitelist_role) do
+    if verify_message(msg) then
+        for _, id in pairs(whitelist_role) do
             if msg.member.roles:get(id) then
                 return
             end
         end
 
-        msg:delete()
-        client:info("Caught %s's message!", username)
-        client:info("Author: %s", msg.author.id)
-        client:info("Message content: %s", msg.content)
-        local bot_msg = msg:reply {
-            content = "Talk in the thread under the message meow x3",
-            mention = msg.author,
-        }
-        timer.setTimeout(3000, function()
-            coroutine.wrap(bot_msg.delete)(bot_msg)
-        end)
-
-        ---@diagnostic disable-next-line:redundant-parameter
-        local modlogs_textchann = msg.guild.textChannels:find(function(c)
-            ---@diagnostic disable-next-line:redundant-return-value
-            return c.id == modlogs_chann
-        end)
-        ---@cast modlogs_textchann TextChannel
-
-        local embed = Embed:new()
-            :setAuthor({
-                name = username,
-                icon_url = msg.author.avatarURL,
-            })
-            :setFooter({
-                text = "Author: " .. msg.author.id,
-            })
-            :setDescription(("**Caught <@%s>'s message!**\n%s"):format(msg.author.id, msg.content))
-            :setColor(0x00aaff)
-            :setTimestamp(discordia.Date():toISO("T", "Z"))
-
-        modlogs_textchann:send {
-            embed = embed:returnEmbed(),
-        }
-    elseif msg.channel.id == showcase_chann then
-        local body = json.encode {
-            name = username .. "'s thread post",
-        }
-
-        DR:new(config.token, 9)
-            :request("POST", ("/channels/%s/messages/%s/threads"):format(msg.channel.id, msg.id), {}, {
-                { "Content-Length", tostring(#body) },
-                { "Content-Type", "application/json" },
-            }, body)
+        filter_message(msg, username)
+    elseif not has_no_thread then
+        make_thread(msg, username)
     end
 end)
 
 client:on("messageUpdate", function(msg)
-    local showcase_chann = "712954974983684137"
-    local modlogs_chann = "810521091973840957"
-    local whitelist_role = {
-        "977060375180738570",
-        "804014473080864829",
-        "650683641936084993",
-    }
-
     local username = msg.author.username
         .. (
             (tostring(msg.author.discriminator) == "0" or not msg.author.discriminator) and ""
             or "#" .. msg.author.discriminator
         )
+    local has_no_thread = msg.content:match("||no thread||$") ~= nil
 
-    if msg.author.bot then
+    if msg.author.bot or msg.channel.id ~= showcase_chann then
         return
     end
 
-    if
-        msg.channel.id == showcase_chann
-        and not (
-            msg.content:find("```.+```")
-            or msg.attachment
-            or lpeg.P({ patt_uri.uri + 1 * lpeg.V(1) }):match(msg.content)
-        )
-    then
-        for _, id in ipairs(whitelist_role) do
+    if verify_message(msg) then
+        for _, id in pairs(whitelist_role) do
             if msg.member.roles:get(id) then
                 return
             end
         end
 
-        msg:delete()
-        client:info("Caught %s's message!", username)
-        client:info("Author: %s", msg.author.id)
-        client:info("Message content: %s", msg.content)
-        local bot_msg = msg:reply {
-            content = "Talk in the thread under the message meow x3",
-            mention = msg.author,
-        }
-        timer.setTimeout(3000, function()
-            coroutine.wrap(bot_msg.delete)(bot_msg)
-        end)
-
-        ---@diagnostic disable-next-line:redundant-parameter
-        local modlogs_textchann = msg.guild.textChannels:find(function(c)
-            ---@diagnostic disable-next-line:redundant-return-value
-            return c.id == modlogs_chann
-        end)
-        ---@cast modlogs_textchann TextChannel
-
-        local embed = Embed:new()
-            :setAuthor({
-                name = username,
-                icon_url = msg.author.avatarURL,
-            })
-            :setFooter({
-                text = "Author: " .. msg.author.id,
-            })
-            :setDescription(("**Caught <@%s>'s message!**\n%s"):format(msg.author.id, msg.content))
-            :setColor(0x00aaff)
-            :setTimestamp(discordia.Date():toISO("T", "Z"))
-
-        modlogs_textchann:send {
-            embed = embed:returnEmbed(),
-        }
+        filter_message(msg, username)
+    else
+        if has_no_thread and api_9:request("GET", ("/channels/%s"):format(msg.id), {}) ~= 404 then
+            client:info("Deleted %s's thread", username)
+            client:info("User: ", msg.author.id)
+            client:info("Thread/Message: %s", msg.id)
+            api_9:request("DELETE", ("/channels/%s"):format(msg.id), {})
+        elseif not has_no_thread then
+            make_thread(msg, username)
+        end
     end
 end)
 

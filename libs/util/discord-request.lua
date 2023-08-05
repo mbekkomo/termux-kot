@@ -25,7 +25,7 @@ end
 function DiscordRequest:request(request_type, url_path, url_param, url_header, body)
     local headers = ext_table.copy(url_header or {})
     headers[#headers + 1] = { "Authorization", "Bot " .. self.token }
-    p(headers)
+
     local params = {}
     for k, v in ipairs(url_param) do
         params[#params + 1] = k .. "=" .. v

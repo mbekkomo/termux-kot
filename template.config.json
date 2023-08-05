@@ -1,4 +1,5 @@
 {
     "token": "YOUR TOKEN HERE",
-    "ownerid": "YOUR USERID HERE"
+    "ownerid": "YOUR USERID HERE",
+    "dev": false
 }
