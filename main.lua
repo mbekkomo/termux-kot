@@ -94,13 +94,13 @@ local function make_thread(msg, username)
     ---@cast modlogs_textchann TextChannel
 
     local embed = Embed:new()
-        :setAuthor {
+        :setAuthor({
             name = username,
             icon_url = msg.author.avatarURL,
-        }
-        :setFooter {
+        })
+        :setFooter({
             text = ("User: %s | Thread/Message: %s"):format(msg.author.id, msg.id),
-        }
+        })
         :setDescription(
             ("**Created thread for <@%s>!**\nhttps://discord.com/channels/%s/%s/%s"):format(
                 msg.author.id,
@@ -138,13 +138,13 @@ local function filter_message(msg, username)
     ---@cast modlogs_textchann TextChannel
 
     local embed = Embed:new()
-        :setAuthor {
+        :setAuthor({
             name = username,
             icon_url = msg.author.avatarURL,
-        }
-        :setFooter {
+        })
+        :setFooter({
             text = "Author: " .. msg.author.id,
-        }
+        })
         :setDescription(("**Caught <@%s>'s message!**\n%s"):format(msg.author.id, msg.content))
         :setColor(0x00aaff)
         :setTimestamp(discordia.Date():toISO("T", "Z"))
@@ -275,6 +275,28 @@ client:on("slashCommand", function(ia, cmd, args)
             client:info("User: %s", ia.user.id)
             cmd_obj.cb(ia, args or {}, config)
         end
+    end
+end)
+
+client:on("messageCreate", function(msg)
+    local username = msg.author.username
+        .. (
+            (tostring(msg.author.discriminator) == "0" or not msg.author.discriminator) and ""
+            or "#" .. msg.author.discriminator
+        )
+    ---@diagnostic disable-next-line:redundant-parameter
+    local a_maxwell = msg.guild.emojis:find(function(e)
+        ---@diagnostic disable-next-line:redundant-return-value
+        return e.name == "Maxwell"
+    end)
+
+    ---@diagnostic disable-next-line:redundant-parameter
+    if msg.mentionedUsers:find(function(m)
+        ---@diagnostic disable-next-line:redundant-return-value
+        return m.id == client.user.id
+    end) then
+        client:info("Kot for you %s!", username)
+        msg:addReaction(a_maxwell)
     end
 end)
 

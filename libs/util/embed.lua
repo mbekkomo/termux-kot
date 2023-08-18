@@ -76,9 +76,9 @@ end
 
 ---@class Embed.Image
 ---@field url string
----@field proxy_url string
----@field height integer
----@field weight integer
+---@field proxy_url string?
+---@field height integer?
+---@field weight integer?
 
 ---@param image Embed.Image
 ---@return Embed
