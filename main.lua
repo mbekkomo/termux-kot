@@ -291,10 +291,12 @@ client:on("messageCreate", function(msg)
     end)
 
     ---@diagnostic disable-next-line:redundant-parameter
-    if msg.mentionedUsers:find(function(m)
-        ---@diagnostic disable-next-line:redundant-return-value
-        return m.id == client.user.id
-    end) then
+    if
+        msg.mentionedUsers:find(function(m)
+            ---@diagnostic disable-next-line:redundant-return-value
+            return m.id == client.user.id
+        end)
+    then
         client:info("Kot for you %s!", username)
         msg:addReaction(a_maxwell)
     end
