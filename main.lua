@@ -5,19 +5,20 @@ local json = require("json")
 local lpeg = require("lpeg")
 local patt_uri = require("lpeg_patterns/uri")
 
-local config = json.decode((assert(fs.readFileSync("config.json"), "cannot find config.json!")))
-local status = json.decode((assert(fs.readFileSync("status.json"), "cannot find status.json!")))
+local config = assert(require("./config.lua"), "cannot find config.lua!")
+local status = assert(require("./status.lua"), "cannot find status.json!")
 
 ---@type discordia
 local discordia = require("discordia")
 local slash_tools = require("discordia-slash").util.tools()
 local Embed = require("util/embed")
+---@module 'libs.util.discord-request'
 local DR = require("util/discord-request")
 local ext = discordia.extensions
 ext.string()
 
 ---@diagnostic disable-next-line:need-check-nil
-local api_9 = DR:new(config.token, 9)
+local api = DR:new(config.token, 9)
 
 local function dict_length(t)
     local count = 0
@@ -46,12 +47,12 @@ for path in fs.scandirSync("commands") do
         cmds[#cmds + 1] = cmd_obj
         client:info("Command loaded: %s", cmd_obj.name)
     else
-        client:error("Failed to load: %s", path)
+        client:error("Failed to load Lua file: %s", path)
         client:error(err or "")
     end
 end
 
----------------------------------------------------------------------------------
+-----------------------------------------------------------------
 ---@cast client Client
 ---@diagnostic disable:need-check-nil
 ---@diagnostic disable:undefined-field
@@ -63,6 +64,8 @@ local whitelist_role = {
     "804014473080864829",
     "650683641936084993",
 }
+
+local embed_color = 0x00aaff
 
 local function verify_message(msg)
     return not (
@@ -81,7 +84,7 @@ local function make_thread(msg, username)
         name = username .. "'s thread post",
     }
 
-    api_9:request("POST", ("/channels/%s/messages/%s/threads"):format(msg.channel.id, msg.id), {}, {
+    api:request("POST", ("/channels/%s/messages/%s/threads"):format(msg.channel.id, msg.id), {}, {
         { "Content-Length", tostring(#body) },
         { "Content-Type", "application/json" },
     }, body)
@@ -109,7 +112,7 @@ local function make_thread(msg, username)
                 msg.id
             )
         )
-        :setColor(0x00aaff)
+        :setColor(embed_color)
         :setTimestamp(discordia.Date():toISO("T", "Z"))
 
     modlogs_textchann:send {
@@ -122,10 +125,7 @@ local function filter_message(msg, username)
     client:info("Caught %s's message!", username)
     client:info("Author: %s", msg.author.id)
     client:info("Message content: %s", msg.content)
-    local bot_msg = msg:reply {
-        content = "Talk in the thread under the message meow x3",
-        mention = msg.author,
-    }
+    local bot_msg = msg:reply(("Send message into the post thread <@%s>! >:3"):format(msg.author.id))
     timer.setTimeout(3000, function()
         coroutine.wrap(bot_msg.delete)(bot_msg)
     end)
@@ -146,7 +146,7 @@ local function filter_message(msg, username)
             text = "Author: " .. msg.author.id,
         })
         :setDescription(("**Caught <@%s>'s message!**\n%s"):format(msg.author.id, msg.content))
-        :setColor(0x00aaff)
+        :setColor(embed_color)
         :setTimestamp(discordia.Date():toISO("T", "Z"))
 
     modlogs_textchann:send {
@@ -161,7 +161,7 @@ cmds[#cmds + 1] = {
         slash_tools.boolean("internal", "Display internal commands."):setRequired(false),
     },
     cb = function(ia, args)
-        local embed = Embed:new():setTitle("Help"):setDescription("Here's the list of all commands."):setColor(0x00aaff)
+        local embed = Embed:new():setTitle("Help"):setDescription("List of all commands."):setColor(embed_color)
 
         for _, v in ipairs(cmds) do
             if not v.internal or v.internal and args.internal then
@@ -264,7 +264,7 @@ client:on("slashCommand", function(ia, cmd, args)
                 break
             end
             client:info(
-                "%s used /%s command",
+                "%s ran /%s command",
                 ia.user.username
                     .. (
                         (tostring(ia.user.discriminator) == "0" or not ia.user.discriminator) and ""
@@ -297,7 +297,7 @@ client:on("messageCreate", function(msg)
             return m.id == client.user.id
         end)
     then
-        client:info("Kot for you %s!", username)
+        client:info("Sending Kot to %s!", username)
         msg:addReaction(a_maxwell)
     end
 end)
@@ -316,7 +316,7 @@ client:on("messageCreate", function(msg)
 
     if verify_message(msg) then
         for _, id in pairs(whitelist_role) do
-            if msg.member.roles:get(id) then
+            if msg.content:match("^%$test") and msg.member.roles:get(id) then
                 return
             end
         end
@@ -348,11 +348,11 @@ client:on("messageUpdate", function(msg)
 
         filter_message(msg, username)
     else
-        if has_no_thread and api_9:request("GET", ("/channels/%s"):format(msg.id), {}) ~= 404 then
+        if has_no_thread and api:request("GET", ("/channels/%s"):format(msg.id), {}) ~= 404 then
             client:info("Deleted %s's thread", username)
             client:info("User: ", msg.author.id)
             client:info("Thread/Message: %s", msg.id)
-            api_9:request("DELETE", ("/channels/%s"):format(msg.id), {})
+            api:request("DELETE", ("/channels/%s"):format(msg.id), {})
         elseif not has_no_thread then
             make_thread(msg, username)
         end
