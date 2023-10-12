@@ -1,0 +1,4 @@
+# vim: set ft=gitnore :
+
+deps/
+libs/lpeg_patterns/
