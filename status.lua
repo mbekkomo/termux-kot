@@ -19,4 +19,16 @@ return {
         name = "Sakamoto-san playing with his tail",
         type = 3,
     },
+    {
+        name = "Maxwell dancing 10 hours",
+        type = 3
+    },
+    {
+        name = "Uni is Maxwell irl",
+        type = 4
+    },
+    {
+        name = "Senpai Shu Chi is a kitten",
+        type = 4
+    }
 }
