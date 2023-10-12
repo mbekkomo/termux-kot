@@ -21,14 +21,14 @@ return {
     },
     {
         name = "Maxwell dancing 10 hours",
-        type = 3
+        type = 3,
     },
     {
         name = "Uni is Maxwell irl",
-        type = 4
+        type = 4,
     },
     {
         name = "Senpai Shu Chi is a kitten",
-        type = 4
-    }
+        type = 4,
+    },
 }
