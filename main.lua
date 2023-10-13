@@ -316,7 +316,7 @@ client:on("messageCreate", function(msg)
 
     if verify_message(msg) then
         for _, id in pairs(whitelist_role) do
-            if (config.dev and msg.content:match("^%$test")) or msg.member.roles:get(id) then
+            if msg.member.roles:get(id) then
                 return
             end
         end
@@ -341,7 +341,7 @@ client:on("messageUpdate", function(msg)
 
     if verify_message(msg) then
         for _, id in pairs(whitelist_role) do
-            if (config.dev and msg.content:match("^%$test")) or msg.member.roles:get(id) then
+            if msg.member.roles:get(id) then
                 return
             end
         end
