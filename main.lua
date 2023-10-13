@@ -2,6 +2,7 @@ local timer = require("timer")
 local fs = require("fs")
 local json = require("json")
 
+local rex = require("rex")
 local lpeg = require("lpeg")
 local patt_uri = require("lpeg_patterns/uri")
 
@@ -75,13 +76,20 @@ local function verify_message(msg)
     )
 end
 
-local function make_thread(msg, username)
+---@param msg Message
+---@param username string
+---@param thread_name string?
+local function make_thread(msg, username, thread_name)
+    thread_name = thread_name or username .. "'s thread post"
+
     client:info("Created thread for %s", username)
+    client:info("Thread name: %s", thread_name)
     client:info("User: %s", msg.author.id)
     client:info("Thread/Message: %s", msg.id)
 
+    ---@diagnostic disable-next-line:missing-fields
     local body = json.encode {
-        name = username .. "'s thread post",
+        name = thread_name
     }
 
     api:request("POST", ("/channels/%s/messages/%s/threads"):format(msg.channel.id, msg.id), {}, {
@@ -309,6 +317,7 @@ client:on("messageCreate", function(msg)
             or "#" .. msg.author.discriminator
         )
     local has_no_thread = msg.content:match("||no thread||$") ~= nil
+    local thread_name = rex.match(msg.content, [[\|\|name:([^|]{1,32})\|\|]])
 
     if msg.author.bot or msg.channel.id ~= showcase_chann then
         return
@@ -323,7 +332,7 @@ client:on("messageCreate", function(msg)
 
         filter_message(msg, username)
     elseif not has_no_thread then
-        make_thread(msg, username)
+        make_thread(msg, username, thread_name)
     end
 end)
 
@@ -334,6 +343,8 @@ client:on("messageUpdate", function(msg)
             or "#" .. msg.author.discriminator
         )
     local has_no_thread = msg.content:match("||no thread||$") ~= nil
+    local thread_name = rex.match(msg.content, [[\|\|name:([^|]{1,32})\|\|]])
+
 
     if msg.author.bot or msg.channel.id ~= showcase_chann then
         return
@@ -354,7 +365,7 @@ client:on("messageUpdate", function(msg)
             client:info("Thread/Message: %s", msg.id)
             api:request("DELETE", ("/channels/%s"):format(msg.id), {})
         elseif not has_no_thread then
-            make_thread(msg, username)
+            make_thread(msg, username, thread_name)
         end
     end
 end)
