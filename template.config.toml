@@ -1,0 +1,9 @@
+# General bot config
+# ==========================================================================
+# dev     : boolean -- Indicate bot running in development or not
+# token   : string  -- String containing Bot/Bearer token
+# ownerid : string  -- String containing user ID to run Owner-only commands
+
+dev = false
+token = "Bot {TOKEN HERE}"
+ownerid = "{USER ID HERE}"
